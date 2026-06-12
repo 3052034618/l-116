@@ -22,6 +22,33 @@ export interface EmissionRecord {
   totalCO2: number
 }
 
+export interface BudgetUsage {
+  id: string
+  date: string
+  item: string
+  amount: number
+  category: string
+  note?: string
+}
+
+export interface Milestone {
+  id: string
+  name: string
+  targetDate: string
+  actualDate?: string
+  status: "pending" | "in_progress" | "completed" | "delayed"
+  description?: string
+}
+
+export interface EmissionImpact {
+  id: string
+  month: string
+  baseline: number
+  actual: number
+  reduction: number
+  note?: string
+}
+
 export interface Measure {
   id: string
   name: string
@@ -34,6 +61,9 @@ export interface Measure {
   endDate: string
   status: "planning" | "executing" | "completed" | "paused"
   description: string
+  budgetUsage: BudgetUsage[]
+  milestones: Milestone[]
+  emissionImpacts: EmissionImpact[]
 }
 
 export interface AnnualTarget {

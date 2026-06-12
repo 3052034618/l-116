@@ -5,14 +5,25 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   LineChart, Line
 } from "recharts"
-import { Building2, Users, TrendingUp, CheckCircle2, AlertTriangle, Calendar } from "lucide-react"
+import { Building2, Users, TrendingUp, CheckCircle2, AlertTriangle, Calendar, Pencil, X, Save } from "lucide-react"
+import type { AnnualTarget } from "@/types"
 
 const YEARS = [2024, 2025, 2026]
 const MONTH_LABELS = ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"]
 
+const DEPARTMENTS = ["研发部", "生产部", "行政部", "IT部", "物流部"]
+
+interface EditForm {
+  targetCO2: number
+  department: string
+}
+
 export default function Targets() {
-  const { buildings, emissionRecords, annualTargets } = useStore()
+  const { buildings, emissionRecords, annualTargets, updateAnnualTarget, addAnnualTarget } = useStore()
   const [selectedYear, setSelectedYear] = useState(2025)
+  const [editingTarget, setEditingTarget] = useState<{ id: string; buildingId: string; year: number } | null>(null)
+  const [editForm, setEditForm] = useState<EditForm>({ targetCO2: 0, department: "" })
+  const [showEditModal, setShowEditModal] = useState(false)
 
   const yearTargets = useMemo(() => {
     return annualTargets.filter(t => t.year === selectedYear)
@@ -26,14 +37,18 @@ export default function Targets() {
         .reduce((s, r) => s + r.totalCO2, 0) / 1000
       const rate = target > 0 ? (actual / target) * 100 : 0
       const status = rate <= 85 ? "good" : rate <= 100 ? "warning" : "danger"
+      const targetRecord = yearTargets.find(t => t.buildingId === b.id)
       return {
         id: b.id,
         name: b.name.slice(3),
+        fullName: b.name,
+        targetId: targetRecord?.id,
+        targetCO2: target,
+        department: targetRecord?.department ?? b.department,
         目标值: +target.toFixed(1),
         实际排放: +actual.toFixed(1),
         进度: +rate.toFixed(1),
         status,
-        department: b.department,
       }
     })
   }, [buildings, yearTargets, emissionRecords, selectedYear])
@@ -91,6 +106,37 @@ export default function Targets() {
       gap: +(totalTarget - totalActual).toFixed(1),
     }
   }, [buildingComparison, buildings])
+
+  const openEdit = (b: typeof buildingComparison[0]) => {
+    const target = yearTargets.find(t => t.buildingId === b.id)
+    if (target) {
+      setEditingTarget({ id: target.id, buildingId: b.id, year: selectedYear })
+      setEditForm({ targetCO2: target.targetCO2, department: target.department })
+    } else {
+      setEditingTarget({ id: "", buildingId: b.id, year: selectedYear })
+      setEditForm({ targetCO2: 0, department: b.department })
+    }
+    setShowEditModal(true)
+  }
+
+  const saveEdit = () => {
+    if (!editingTarget) return
+    if (editingTarget.id) {
+      updateAnnualTarget(editingTarget.id, {
+        targetCO2: editForm.targetCO2,
+        department: editForm.department,
+      })
+    } else {
+      addAnnualTarget({
+        buildingId: editingTarget.buildingId,
+        year: editingTarget.year,
+        targetCO2: editForm.targetCO2,
+        department: editForm.department,
+      })
+    }
+    setShowEditModal(false)
+    setEditingTarget(null)
+  }
 
   return (
     <div className="space-y-6">
@@ -211,6 +257,7 @@ export default function Targets() {
           <div className="flex items-center justify-between mb-5">
             <div>
               <h2 className="font-serif text-lg font-semibold text-ink">楼宇达标情况</h2>
+              <p className="text-xs text-ink-muted mt-0.5">点击编辑图标调整目标</p>
             </div>
             <Users size={18} className="text-ink-muted" />
           </div>
@@ -227,13 +274,22 @@ export default function Targets() {
                     <span className="text-sm font-medium text-ink">{b.name}</span>
                     <span className="text-[11px] text-ink-muted">{b.department}</span>
                   </div>
-                  <span className={cn(
-                    "text-xs font-semibold",
-                    b.status === "good" ? "text-emerald-600" :
-                    b.status === "warning" ? "text-amber-600" : "text-red-500"
-                  )}>
-                    {b.进度}%
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={cn(
+                      "text-xs font-semibold",
+                      b.status === "good" ? "text-emerald-600" :
+                      b.status === "warning" ? "text-amber-600" : "text-red-500"
+                    )}>
+                      {b.进度}%
+                    </span>
+                    <button
+                      onClick={() => openEdit(b)}
+                      className="p-1 rounded-md hover:bg-gray-100 text-ink-muted hover:text-teal-600 transition-colors"
+                      title="编辑目标"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                  </div>
                 </div>
                 <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden relative">
                   <div
@@ -338,6 +394,74 @@ export default function Targets() {
           </div>
         </div>
       </div>
+
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="card w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-serif text-xl font-bold text-ink">
+                编辑年度目标
+              </h3>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="p-1 rounded-lg hover:bg-gray-100 text-ink-muted">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-5">
+              <div>
+                <label className="block text-sm font-medium text-ink-secondary mb-2">楼宇</label>
+                <p className="text-ink font-medium">
+                  {buildingComparison.find(b => b.id === editingTarget?.buildingId)?.fullName}
+                </p>
+                <p className="text-xs text-ink-muted">{selectedYear} 年度</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-ink-secondary mb-2">年度目标值 (吨 CO₂)</label>
+                <input
+                  type="number"
+                  value={editForm.targetCO2}
+                  onChange={e => setEditForm({ ...editForm, targetCO2: Number(e.target.value) })}
+                  className="input-field"
+                  placeholder="请输入年度目标值"
+                  min={0}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-ink-secondary mb-2">归属部门</label>
+                <select
+                  value={editForm.department}
+                  onChange={e => setEditForm({ ...editForm, department: e.target.value })}
+                  className="select-field"
+                >
+                  {DEPARTMENTS.map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="btn-secondary flex-1"
+              >
+                取消
+              </button>
+              <button
+                onClick={saveEdit}
+                className="btn-primary flex-1 flex items-center justify-center gap-2"
+              >
+                <Save size={16} />
+                保存
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

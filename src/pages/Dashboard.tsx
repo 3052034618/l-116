@@ -111,6 +111,20 @@ export default function Dashboard() {
     return buildingTotals.sort((a, b) => b.total - a.total)
   }, [buildings, emissionRecords])
 
+  const filteredMeasures = useMemo(() => {
+    if (!buildingId) return measures
+    return measures.filter(m => m.buildingId === buildingId)
+  }, [measures, buildingId])
+
+  const measureStats = useMemo(() => {
+    const count = filteredMeasures.length
+    const executing = filteredMeasures.filter(m => m.status === "executing").length
+    const completed = filteredMeasures.filter(m => m.status === "completed").length
+    const estimated = filteredMeasures.reduce((s, m) => s + m.estimatedReduction, 0)
+    const actual = filteredMeasures.reduce((s, m) => s + m.actualReduction, 0)
+    return { count, executing, completed, estimated, actual }
+  }, [filteredMeasures])
+
   const circumference = 2 * Math.PI * 80
   const strokeDashoffset = circumference - (progressPercent / 100) * circumference
 
@@ -173,8 +187,12 @@ export default function Dashboard() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm text-ink-secondary">节能措施</p>
-              <p className="stat-value text-accent mt-2">{measures.length}<span className="text-base font-normal text-ink-muted ml-1">项</span></p>
-              <p className="text-xs text-ink-muted mt-1">执行中 {measures.filter(m => m.status === "executing").length} · 已完成 {measures.filter(m => m.status === "completed").length}</p>
+              <p className="stat-value text-accent mt-2">{measureStats.count}<span className="text-base font-normal text-ink-muted ml-1">项</span></p>
+              <p className="text-xs text-ink-muted mt-1">执行中 {measureStats.executing} · 已完成 {measureStats.completed}</p>
+              <div className="flex gap-3 mt-2 text-xs">
+                <span className="text-ink-secondary">预计: <span className="text-ink font-medium">{measureStats.estimated} 吨</span></span>
+                <span className="text-ink-secondary">实际: <span className="text-teal-600 font-medium">{measureStats.actual} 吨</span></span>
+              </div>
             </div>
             <div className="w-11 h-11 rounded-xl bg-accent/10 flex items-center justify-center">
               <Activity size={22} className="text-accent" />
