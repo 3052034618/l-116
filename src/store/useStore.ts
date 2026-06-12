@@ -119,9 +119,9 @@ export const useStore = create<StoreState & StoreActions>((set, get) => {
   return {
     ...initialState,
 
-    setSelectedBuilding: (id) => set({ selectedBuildingId: id }, false, persist),
+    setSelectedBuilding: (id) => { set({ selectedBuildingId: id }); persist() },
 
-    addEmissionRecord: (record) =>
+    addEmissionRecord: (record) => {
       set((state) => {
         const co2 = calcCO2(record.electricity, record.water, record.gas, record.vehicleMileage, record.purchasedSteam)
         const newRecord: EmissionRecord = {
@@ -130,23 +130,29 @@ export const useStore = create<StoreState & StoreActions>((set, get) => {
           ...co2,
         }
         return { emissionRecords: [...state.emissionRecords, newRecord] }
-      }, false, persist),
+      })
+      persist()
+    },
 
-    updateEmissionRecord: (id, record) =>
+    updateEmissionRecord: (id, record) => {
       set((state) => ({
         emissionRecords: state.emissionRecords.map((r) => {
           if (r.id !== id) return r
           const co2 = calcCO2(record.electricity, record.water, record.gas, record.vehicleMileage, record.purchasedSteam)
           return { ...r, ...record, ...co2 }
         }),
-      }), false, persist),
+      }))
+      persist()
+    },
 
-    deleteEmissionRecord: (id) =>
+    deleteEmissionRecord: (id) => {
       set((state) => ({
         emissionRecords: state.emissionRecords.filter((r) => r.id !== id),
-      }), false, persist),
+      }))
+      persist()
+    },
 
-    addMeasure: (measure) =>
+    addMeasure: (measure) => {
       set((state) => ({
         measures: [
           ...state.measures,
@@ -158,28 +164,36 @@ export const useStore = create<StoreState & StoreActions>((set, get) => {
             emissionImpacts: [],
           },
         ],
-      }), false, persist),
+      }))
+      persist()
+    },
 
-    updateMeasure: (id, measure) =>
+    updateMeasure: (id, measure) => {
       set((state) => ({
         measures: state.measures.map((m) => (m.id === id ? { ...m, ...measure } : m)),
-      }), false, persist),
+      }))
+      persist()
+    },
 
-    deleteMeasure: (id) =>
+    deleteMeasure: (id) => {
       set((state) => ({
         measures: state.measures.filter((m) => m.id !== id),
-      }), false, persist),
+      }))
+      persist()
+    },
 
-    addBudgetUsage: (measureId, item) =>
+    addBudgetUsage: (measureId, item) => {
       set((state) => ({
         measures: state.measures.map((m) =>
           m.id === measureId
             ? { ...m, budgetUsage: [...m.budgetUsage, { ...item, id: `bu${Date.now()}` }] }
             : m
         ),
-      }), false, persist),
+      }))
+      persist()
+    },
 
-    updateBudgetUsage: (measureId, itemId, item) =>
+    updateBudgetUsage: (measureId, itemId, item) => {
       set((state) => ({
         measures: state.measures.map((m) =>
           m.id === measureId
@@ -189,27 +203,33 @@ export const useStore = create<StoreState & StoreActions>((set, get) => {
               }
             : m
         ),
-      }), false, persist),
+      }))
+      persist()
+    },
 
-    deleteBudgetUsage: (measureId, itemId) =>
+    deleteBudgetUsage: (measureId, itemId) => {
       set((state) => ({
         measures: state.measures.map((m) =>
           m.id === measureId
             ? { ...m, budgetUsage: m.budgetUsage.filter((b) => b.id !== itemId) }
             : m
         ),
-      }), false, persist),
+      }))
+      persist()
+    },
 
-    addMilestone: (measureId, milestone) =>
+    addMilestone: (measureId, milestone) => {
       set((state) => ({
         measures: state.measures.map((m) =>
           m.id === measureId
             ? { ...m, milestones: [...m.milestones, { ...milestone, id: `ms${Date.now()}` }] }
             : m
         ),
-      }), false, persist),
+      }))
+      persist()
+    },
 
-    updateMilestone: (measureId, milestoneId, milestone) =>
+    updateMilestone: (measureId, milestoneId, milestone) => {
       set((state) => ({
         measures: state.measures.map((m) =>
           m.id === measureId
@@ -219,27 +239,33 @@ export const useStore = create<StoreState & StoreActions>((set, get) => {
               }
             : m
         ),
-      }), false, persist),
+      }))
+      persist()
+    },
 
-    deleteMilestone: (measureId, milestoneId) =>
+    deleteMilestone: (measureId, milestoneId) => {
       set((state) => ({
         measures: state.measures.map((m) =>
           m.id === measureId
             ? { ...m, milestones: m.milestones.filter((ms) => ms.id !== milestoneId) }
             : m
         ),
-      }), false, persist),
+      }))
+      persist()
+    },
 
-    addEmissionImpact: (measureId, impact) =>
+    addEmissionImpact: (measureId, impact) => {
       set((state) => ({
         measures: state.measures.map((m) =>
           m.id === measureId
             ? { ...m, emissionImpacts: [...m.emissionImpacts, { ...impact, id: `ei${Date.now()}` }] }
             : m
         ),
-      }), false, persist),
+      }))
+      persist()
+    },
 
-    updateEmissionImpact: (measureId, impactId, impact) =>
+    updateEmissionImpact: (measureId, impactId, impact) => {
       set((state) => ({
         measures: state.measures.map((m) =>
           m.id === measureId
@@ -249,36 +275,48 @@ export const useStore = create<StoreState & StoreActions>((set, get) => {
               }
             : m
         ),
-      }), false, persist),
+      }))
+      persist()
+    },
 
-    deleteEmissionImpact: (measureId, impactId) =>
+    deleteEmissionImpact: (measureId, impactId) => {
       set((state) => ({
         measures: state.measures.map((m) =>
           m.id === measureId
             ? { ...m, emissionImpacts: m.emissionImpacts.filter((ei) => ei.id !== impactId) }
             : m
         ),
-      }), false, persist),
+      }))
+      persist()
+    },
 
-    addAnnualTarget: (target) =>
+    addAnnualTarget: (target) => {
       set((state) => ({
         annualTargets: [...state.annualTargets, { ...target, id: `t${Date.now()}` }],
-      }), false, persist),
+      }))
+      persist()
+    },
 
-    updateAnnualTarget: (id, target) =>
+    updateAnnualTarget: (id, target) => {
       set((state) => ({
         annualTargets: state.annualTargets.map((t) => (t.id === id ? { ...t, ...target } : t)),
-      }), false, persist),
+      }))
+      persist()
+    },
 
-    deleteAnnualTarget: (id) =>
+    deleteAnnualTarget: (id) => {
       set((state) => ({
         annualTargets: state.annualTargets.filter((t) => t.id !== id),
-      }), false, persist),
+      }))
+      persist()
+    },
 
-    setTodoStatus: (todoId, status) =>
+    setTodoStatus: (todoId, status) => {
       set((state) => ({
         todoStatuses: { ...state.todoStatuses, [todoId]: status },
-      }), false, persist),
+      }))
+      persist()
+    },
 
     resetToMockData: () => {
       localStorage.removeItem(STORAGE_KEY)

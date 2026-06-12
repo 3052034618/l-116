@@ -1,6 +1,5 @@
-import { useState, useMemo, useRef, useEffect } from "react"
+import { useState, useMemo, useRef } from "react"
 import { useStore } from "@/store/useStore"
-import { quarterlyReports } from "@/data/mockData"
 import { cn } from "@/lib/utils"
 import html2canvas from "html2canvas"
 import jsPDF from "jspdf"
@@ -21,21 +20,11 @@ const TYPE_BADGE = { overdue_measure: "bg-red-100 text-red-700", expiring_projec
 const TYPE_LABEL = { overdue_measure: "逾期措施", expiring_project: "即将到期", missing_data: "数据缺失" }
 
 export default function Reports() {
-  const { buildings, emissionRecords, measures, annualTargets } = useStore()
+  const { buildings, emissionRecords, measures, annualTargets, todoStatuses, setTodoStatus } = useStore()
   const [year, setYear] = useState(2025)
   const [quarter, setQuarter] = useState(4)
-  const [todoStatus, setTodoStatus] = useState<Record<string, boolean>>({})
   const [showExportMenu, setShowExportMenu] = useState(false)
   const reportRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const saved = quarterlyReports.find(r => r.year === year && r.quarter === quarter)
-    if (saved) {
-      const initState: Record<string, boolean> = {}
-      saved.todos.forEach(t => { initState[t.id] = t.status === "done" })
-      setTodoStatus(initState)
-    }
-  }, [year, quarter])
 
   const buildingMap = useMemo(() => {
     const m = new Map<string, string>()
@@ -76,8 +65,7 @@ export default function Reports() {
     const startMonth = `${year}-${String(QUARTER_MONTHS[quarter][0]).padStart(2, "0")}`
     const endMonth = `${year}-${String(QUARTER_MONTHS[quarter][2]).padStart(2, "0")}-31`
     return measures.filter(m => {
-      const end = m.startDate <= endMonth && m.endDate >= `${startMonth}-01`
-      return end
+      return m.startDate <= endMonth && m.endDate >= `${startMonth}-01`
     })
   }, [measures, year, quarter])
 
@@ -108,9 +96,6 @@ export default function Reports() {
         }
       }
     })
-    const savedAnoms = quarterlyReports.find(r => r.year === year && r.quarter === quarter)?.anomalies ?? []
-    const existingIds = new Set(list.map(a => a.id))
-    savedAnoms.forEach(a => { if (!existingIds.has(a.id)) list.push(a) })
     return list.sort((a, b) => {
       const order = { high: 0, medium: 1, low: 2 }
       return order[a.severity] - order[b.severity]
@@ -130,7 +115,7 @@ export default function Reports() {
           title: `措施到期未完成：${m.name}（责任人：${m.responsiblePerson || "未指定"}）`,
           type: "overdue_measure",
           dueDate: m.endDate,
-          status: todoStatus[`todo-overdue-${m.id}`] ? "done" : "pending",
+          status: todoStatuses[`todo-overdue-${m.id}`] === "done" ? "done" : "pending",
         })
       }
     })
@@ -144,7 +129,7 @@ export default function Reports() {
           title: `措施即将到期：${m.name}（预计减排 ${m.estimatedReduction} 吨，剩余 ${diffDays} 天）`,
           type: "expiring_project",
           dueDate: m.endDate,
-          status: todoStatus[`todo-expiring-${m.id}`] ? "done" : "pending",
+          status: todoStatuses[`todo-expiring-${m.id}`] === "done" ? "done" : "pending",
         })
       }
     })
@@ -160,7 +145,7 @@ export default function Reports() {
             title: `数据缺失：${b.name} ${month} 月排放数据尚未录入`,
             type: "missing_data",
             dueDate: `${month}-05`,
-            status: todoStatus[`todo-missing-${b.id}-${month}`] ? "done" : "pending",
+            status: todoStatuses[`todo-missing-${b.id}-${month}`] === "done" ? "done" : "pending",
           })
         }
       })
@@ -168,9 +153,12 @@ export default function Reports() {
 
     const typeOrder = { overdue_measure: 0, missing_data: 1, expiring_project: 2 }
     return list.sort((a, b) => typeOrder[a.type] - typeOrder[b.type])
-  }, [measures, emissionRecords, buildings, year, quarter, todoStatus])
+  }, [measures, emissionRecords, buildings, year, quarter, todoStatuses])
 
-  const toggleTodo = (id: string) => setTodoStatus(prev => ({ ...prev, [id]: !prev[id] }))
+  const toggleTodo = (id: string) => {
+    const current = todoStatuses[id] ?? "pending"
+    setTodoStatus(id, current === "done" ? "pending" : "done")
+  }
 
   const buildingBreakdown = useMemo(() => {
     return buildings.map(b => {
@@ -236,7 +224,7 @@ export default function Reports() {
       ["待办清单"],
       todos.length ? ["状态", "类型", "事项", "截止日期"] : ["本季度无待办"],
       ...todos.map(t => [
-        todoStatus[t.id] ? "已完成" : "待处理",
+        todoStatuses[t.id] === "done" ? "已完成" : "待处理",
         TYPE_LABEL[t.type],
         t.title,
         t.dueDate,
@@ -437,7 +425,7 @@ export default function Reports() {
             </div>
             <div className="flex items-center gap-3 text-xs">
               <span className="text-ink-muted">
-                <span className="text-ink font-semibold">{todos.filter((t) => todoStatus[t.id]).length}</span>
+                <span className="text-ink font-semibold">{todos.filter((t) => todoStatuses[t.id] === "done").length}</span>
                 <span className="mx-1">/</span>
                 <span>{todos.length}</span> 已完成
               </span>
@@ -445,13 +433,13 @@ export default function Reports() {
               <div className="flex items-center gap-2">
                 <Clock size={12} className="text-red-500" />
                 <span className="text-red-600 font-medium">
-                  {todos.filter(t => t.type === "overdue_measure" && !todoStatus[t.id]).length} 逾期
+                  {todos.filter(t => t.type === "overdue_measure" && todoStatuses[t.id] !== "done").length} 逾期
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <Database size={12} className="text-blue-500" />
                 <span className="text-blue-600 font-medium">
-                  {todos.filter(t => t.type === "missing_data" && !todoStatus[t.id]).length} 缺数据
+                  {todos.filter(t => t.type === "missing_data" && todoStatuses[t.id] !== "done").length} 缺数据
                 </span>
               </div>
             </div>
@@ -469,7 +457,7 @@ export default function Reports() {
                   key={t.id}
                   className={cn(
                     "flex items-start gap-3 p-4 rounded-xl border transition-all cursor-pointer",
-                    todoStatus[t.id]
+                    todoStatuses[t.id] === "done"
                       ? "bg-gray-50/50 border-gray-100"
                       : t.type === "overdue_measure"
                       ? "bg-red-50/60 border-red-100 hover:bg-red-50"
@@ -480,14 +468,14 @@ export default function Reports() {
                 >
                   <input
                     type="checkbox"
-                    checked={!!todoStatus[t.id]}
+                    checked={todoStatuses[t.id] === "done"}
                     onChange={() => toggleTodo(t.id)}
                     className="mt-0.5 w-4.5 h-4.5 rounded-md border-gray-300 text-teal-500 focus:ring-teal-400 shrink-0"
                   />
                   <div className="flex-1 min-w-0">
                     <p className={cn(
                       "text-sm leading-relaxed",
-                      todoStatus[t.id] ? "line-through text-ink-muted" : "text-ink"
+                      todoStatuses[t.id] === "done" ? "line-through text-ink-muted" : "text-ink"
                     )}>
                       {t.title}
                     </p>
