@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;600;700&display=swap');
+
+:root {
+  font-family: "Noto Sans SC", system-ui, sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+  color: #1A2332;
+  background-color: #F5F7FA;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+@layer components {
+  .card {
+    @apply bg-surface-card rounded-xl shadow-sm border border-gray-100 p-6 transition-shadow duration-200;
+  }
+  .card:hover {
+    @apply shadow-md;
+  }
+  .section-title {
+    @apply font-serif text-lg font-semibold text-ink mb-4;
+  }
+  .stat-value {
+    @apply text-3xl font-bold font-serif tracking-tight;
+  }
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  .btn-primary {
+    @apply bg-teal-500 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-teal-600 active:bg-teal-700 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2;
+  }
+  .btn-secondary {
+    @apply bg-white text-teal-500 border border-teal-500 px-4 py-2 rounded-lg font-medium text-sm hover:bg-teal-50 active:bg-teal-100 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2;
+  }
+  .btn-danger {
+    @apply bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-lg font-medium text-sm hover:bg-red-100 active:bg-red-200 transition-colors duration-150;
+  }
+  .input-field {
+    @apply w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-teal-400 transition-colors bg-white;
+  }
+  .select-field {
+    @apply w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-teal-400 transition-colors bg-white appearance-none;
+  }
+  .table-header {
+    @apply bg-gray-50 text-ink-secondary text-xs font-semibold uppercase tracking-wider;
+  }
+  .table-row {
+    @apply border-b border-gray-50 hover:bg-gray-50/50 transition-colors;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #c4cdd5;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9aa5b1;
+}
+
+.recharts-default-tooltip {
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+  border: none !important;
+  padding: 8px 12px !important;
+}
